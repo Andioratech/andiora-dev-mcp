@@ -31,6 +31,8 @@ npm run dev
 
 The first runtime phase intentionally exposes only read tools over `stdio`. It uses the existing Andiora REST API, applies a configured tenant boundary, validates inputs, redacts sensitive logs, and sends idempotency support for future write tools.
 
+Use `list_projects` first to discover project IDs visible to the authenticated employee, then pass a selected `projectId` to `get_project_roadmap`. Project visibility and permissions remain enforced by the Andiora API.
+
 ## Client configuration
 
 For Cursor, Claude Desktop, or another stdio-capable client, configure the compiled entry point:

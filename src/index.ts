@@ -40,6 +40,16 @@ server.registerTool("get_project_roadmap", {
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
 
+server.registerTool("list_projects", {
+  description: "List projects visible to the authenticated employee and their organization scope.",
+  inputSchema: tenantInput,
+}, async (input) => {
+  const organizationIdValue = organizationId(input);
+  const result = await api.get("/api/v1/projects");
+  logger.info({ tool: "list_projects", organizationId: organizationIdValue }, "MCP tool call");
+  return { content: [{ type: "text", text: JSON.stringify(result) }] };
+});
+
 server.registerTool("get_health_diagnostics", {
   description: "Read platform health diagnostics without exposing secrets.",
   inputSchema: tenantInput,
