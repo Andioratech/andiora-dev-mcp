@@ -111,25 +111,6 @@ server.registerTool("list_team_members", {
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
 
-server.registerTool("list_billing_records", {
-  description: "List tenant-scoped billing records and contract status.",
-  inputSchema: tenantInput,
-}, async (input) => {
-  const organizationIdValue = organizationId(input);
-  const result = await api.get("/api/v1/billing");
-  logger.info({ tool: "list_billing_records", organizationId: organizationIdValue }, "MCP tool call");
-  return { content: [{ type: "text", text: JSON.stringify(result) }] };
-});
-
-server.registerTool("list_vault_resources", {
-  description: "List tenant-scoped Vault resource metadata only; secret values are never returned.",
-  inputSchema: projectFilterInput,
-}, async (input) => {
-  const organizationIdValue = organizationId(input);
-  const result = await api.get("/api/v1/vault", { projectId: input.projectId });
-  logger.info({ tool: "list_vault_resources", organizationId: organizationIdValue }, "MCP tool call");
-  return { content: [{ type: "text", text: JSON.stringify(result) }] };
-});
 
 server.registerTool("get_health_diagnostics", {
   description: "Read platform health diagnostics without exposing secrets.",

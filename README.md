@@ -33,7 +33,7 @@ The first runtime phase intentionally exposes only read tools over `stdio`. It u
 
 Use `list_projects` first to discover project IDs visible to the authenticated employee, then pass a selected `projectId` to `get_project_roadmap`. Project visibility and permissions remain enforced by the Andiora API.
 
-The read-only catalog currently includes `get_organization_status`, `list_projects`, `get_project_roadmap`, `list_documents`, `list_deliverables`, `list_tickets`, `get_analytics_summary`, `get_health_diagnostics`, `list_monitors`, `list_team_members`, `list_billing_records`, and `list_vault_resources`. Vault tools return metadata only and never reveal secret values.
+The read-only catalog currently includes `get_organization_status`, `list_projects`, `get_project_roadmap`, `list_documents`, `list_deliverables`, `list_tickets`, `get_analytics_summary`, `get_health_diagnostics`, `list_monitors`, and `list_team_members`. Billing and Vault are intentionally excluded from the general developer MCP because they expose sensitive financial or infrastructure context.
 
 ## Client configuration
 
