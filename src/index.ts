@@ -24,7 +24,8 @@ server.registerTool("get_organization_status", {
 }, async (input) => {
   const organizationIdValue = organizationId(input);
   logger.info({ tool: "get_organization_status", organizationId: organizationIdValue }, "MCP tool call");
-  const result = await api.get(`/api/v1/organizations/${encodeURIComponent(organizationIdValue)}`);
+  // The platform exposes organizations as a tenant-scoped collection; individual GET is not a route.
+  const result = await api.get("/api/v1/organizations");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
 
@@ -33,7 +34,8 @@ server.registerTool("get_project_roadmap", {
   inputSchema: { organizationId: z.string().min(1).optional(), projectId: z.string().min(1) },
 }, async (input) => {
   const organizationIdValue = organizationId(input);
-  const result = await api.get(`/api/v1/projects/${encodeURIComponent(input.projectId)}/milestones`);
+  // Projects are returned with their milestones by the collection endpoint.
+  const result = await api.get("/api/v1/projects");
   logger.info({ tool: "get_project_roadmap", organizationId: organizationIdValue, projectId: input.projectId }, "MCP tool call");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
