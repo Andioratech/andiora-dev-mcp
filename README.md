@@ -37,6 +37,8 @@ The read-only catalog currently includes `get_organization_status`, `list_projec
 
 The `create_markdown_document` tool uploads UTF-8 Markdown to the Andiora Document Hub as a `DRAFT`. It enforces a safe filename, a 2 MB content limit, tenant ownership, short-lived presigned S3 upload URLs, and idempotency keys. Publication remains a human-controlled platform workflow.
 
+The workflow tools are `create_markdown_version`, `submit_document_for_review`, `approve_document`, `publish_document`, and `create_report_draft`. Versions are linked to their parent document, reports use the same sanitized Markdown pipeline, transitions are enforced by the platform, and the MCP applies a local limit of 60 API requests per minute. Structured audit logs are emitted without tokens or secrets.
+
 ## Client configuration
 
 For Cursor, Claude Desktop, or another stdio-capable client, configure the compiled entry point:

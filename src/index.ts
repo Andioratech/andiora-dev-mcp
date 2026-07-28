@@ -94,6 +94,56 @@ server.registerTool("create_markdown_document", {
   return { content: [{ type: "text", text: JSON.stringify({ document: confirmed.data, status: "DRAFT", message: "Markdown document uploaded and saved as a draft for review" }) }] };
 });
 
+async function uploadDraft(input: { organizationId?: string; projectId?: string; title: string; filename: string; content: string; category: "MANUAL" | "ARCHITECTURE" | "SECURITY" | "TECHNICAL"; accessScope: "CLIENT_SHARED" | "INTERNAL_ADMIN"; parentDocumentId?: string }) {
+  const organizationIdValue = organizationId(input);
+  const fileSize = Buffer.byteLength(input.content, "utf8");
+  if (fileSize > 2 * 1024 * 1024) throw new Error("Markdown content exceeds the 2 MB limit");
+  const created = await api.post<{ data: { id: string; title: string; versionNumber?: number }; uploadUrl: string | null }>("/api/v1/documents", {
+    organizationId: organizationIdValue, projectId: input.projectId, parentDocumentId: input.parentDocumentId,
+    title: input.title, filename: input.filename, mimeType: "text/markdown", fileSize,
+    category: input.category, accessScope: input.accessScope,
+  }, randomUUID());
+  if (!created.uploadUrl) throw new Error("Markdown storage is not provisioned in this stage");
+  await api.putPresigned(created.uploadUrl, input.content);
+  const confirmed = await api.put<{ data: unknown }>(`/api/v1/documents/${created.data.id}`, { action: "confirm-upload", fileSize, status: "DRAFT" }, randomUUID());
+  return { organizationIdValue, document: confirmed.data };
+}
+
+server.registerTool("create_markdown_version", {
+  description: "Create a new tenant-scoped Markdown version linked to an existing document, saved as DRAFT.",
+  inputSchema: {
+    organizationId: z.string().min(1).optional(), projectId: z.string().min(1).optional(), parentDocumentId: z.string().min(1),
+    title: z.string().min(1).max(200), filename: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}\.(md|markdown)$/i),
+    content: z.string().min(1).max(2 * 1024 * 1024), category: z.enum(["MANUAL", "ARCHITECTURE", "SECURITY", "TECHNICAL"]).default("TECHNICAL"),
+    accessScope: z.enum(["CLIENT_SHARED", "INTERNAL_ADMIN"]).default("INTERNAL_ADMIN"),
+  },
+}, async (input) => {
+  const result = await uploadDraft(input);
+  logger.info({ tool: "create_markdown_version", organizationId: result.organizationIdValue }, "MCP tool call");
+  return { content: [{ type: "text", text: JSON.stringify({ document: result.document, status: "DRAFT" }) }] };
+});
+
+server.registerTool("create_report_draft", {
+  description: "Create a Markdown operational report draft with metrics and diagrams for human review.",
+  inputSchema: {
+    organizationId: z.string().min(1).optional(), projectId: z.string().min(1).optional(), title: z.string().min(1).max(200),
+    content: z.string().min(1).max(2 * 1024 * 1024), accessScope: z.enum(["CLIENT_SHARED", "INTERNAL_ADMIN"]).default("INTERNAL_ADMIN"),
+  },
+}, async (input) => {
+  const filename = `${input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 120) || "report"}.md`;
+  const result = await uploadDraft({ ...input, filename, category: "TECHNICAL" });
+  logger.info({ tool: "create_report_draft", organizationId: result.organizationIdValue }, "MCP tool call");
+  return { content: [{ type: "text", text: JSON.stringify({ document: result.document, status: "DRAFT", message: "Report draft created" }) }] };
+});
+
+async function transitionDocument(documentId: string, status: "REVIEW" | "APPROVED" | "PUBLISHED") {
+  return api.put<{ data: unknown }>(`/api/v1/documents/${encodeURIComponent(documentId)}`, { action: "set-status", status }, randomUUID());
+}
+
+server.registerTool("submit_document_for_review", { description: "Move a Markdown document from DRAFT to REVIEW.", inputSchema: { documentId: z.string().min(1) } }, async ({ documentId }) => ({ content: [{ type: "text", text: JSON.stringify((await transitionDocument(documentId, "REVIEW")).data) }] }));
+server.registerTool("approve_document", { description: "Approve a document currently in REVIEW.", inputSchema: { documentId: z.string().min(1) } }, async ({ documentId }) => ({ content: [{ type: "text", text: JSON.stringify((await transitionDocument(documentId, "APPROVED")).data) }] }));
+server.registerTool("publish_document", { description: "Publish an approved document. Requires explicit human invocation.", inputSchema: { documentId: z.string().min(1) } }, async ({ documentId }) => ({ content: [{ type: "text", text: JSON.stringify((await transitionDocument(documentId, "PUBLISHED")).data) }] }));
+
 server.registerTool("list_deliverables", {
   description: "List tenant-scoped project deliverables and their approval status.",
   inputSchema: projectFilterInput,
