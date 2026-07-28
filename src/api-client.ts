@@ -23,6 +23,26 @@ export class AndioraApiClient {
     return this.parse<T>(response);
   }
 
+  async putPresigned(url: string, content: string): Promise<void> {
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "text/markdown", "Content-Length": String(Buffer.byteLength(content, "utf8")), "x-amz-server-side-encryption": "AES256" },
+      body: content,
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) throw new Error(`Markdown upload failed (${response.status})`);
+  }
+
+  async put<T>(path: string, body: unknown, idempotencyKey: string): Promise<T> {
+    const response = await fetch(`${this.config.ANDIORA_API_URL}${path}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${this.config.ANDIORA_ACCESS_TOKEN}`, "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    });
+    return this.parse<T>(response);
+  }
+
   private async parse<T>(response: Response): Promise<T> {
     const payload = await response.json().catch(() => undefined);
     if (!response.ok) throw new Error(`Andiora API request failed (${response.status})`);

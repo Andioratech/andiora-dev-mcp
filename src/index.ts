@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { randomUUID } from "node:crypto";
 import pino from "pino";
 import { z } from "zod";
 import { AndioraApiClient } from "./api-client.js";
@@ -59,6 +60,38 @@ server.registerTool("list_documents", {
   const result = await api.get("/api/v1/documents", { projectId: input.projectId });
   logger.info({ tool: "list_documents", organizationId: organizationIdValue }, "MCP tool call");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
+});
+
+server.registerTool("create_markdown_document", {
+  description: "Create and upload a tenant-scoped Markdown document as a DRAFT for human review.",
+  inputSchema: {
+    organizationId: z.string().min(1).optional(),
+    projectId: z.string().min(1).optional(),
+    title: z.string().min(1).max(200),
+    filename: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}\.(md|markdown)$/i),
+    content: z.string().min(1).max(2 * 1024 * 1024),
+    category: z.enum(["MANUAL", "ARCHITECTURE", "SECURITY", "TECHNICAL"]).default("TECHNICAL"),
+    accessScope: z.enum(["CLIENT_SHARED", "INTERNAL_ADMIN"]).default("INTERNAL_ADMIN"),
+  },
+}, async (input) => {
+  const organizationIdValue = organizationId(input);
+  const fileSize = Buffer.byteLength(input.content, "utf8");
+  if (fileSize > 2 * 1024 * 1024) throw new Error("Markdown content exceeds the 2 MB limit");
+  const created = await api.post<{ data: { id: string; title: string }; uploadUrl: string | null }>("/api/v1/documents", {
+    organizationId: organizationIdValue,
+    projectId: input.projectId,
+    title: input.title,
+    filename: input.filename,
+    mimeType: "text/markdown",
+    fileSize,
+    category: input.category,
+    accessScope: input.accessScope,
+  }, randomUUID());
+  if (!created.uploadUrl) throw new Error("Markdown storage is not provisioned in this stage");
+  await api.putPresigned(created.uploadUrl, input.content);
+  const confirmed = await api.put<{ data: unknown }>(`/api/v1/documents/${created.data.id}`, { action: "confirm-upload", fileSize, status: "DRAFT" }, randomUUID());
+  logger.info({ tool: "create_markdown_document", organizationId: organizationIdValue, documentId: created.data.id }, "MCP tool call");
+  return { content: [{ type: "text", text: JSON.stringify({ document: confirmed.data, status: "DRAFT", message: "Markdown document uploaded and saved as a draft for review" }) }] };
 });
 
 server.registerTool("list_deliverables", {
