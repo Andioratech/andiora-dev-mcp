@@ -28,6 +28,24 @@ function organizationId(input: { organizationId?: string }): string {
   return value;
 }
 
+/**
+ * Some platform collection routes currently apply tenant scoping but do not
+ * yet implement the optional projectId query parameter. Keep the MCP output
+ * least-privilege until those routes gain server-side project filtering.
+ */
+function restrictToProject(result: unknown, projectId?: string): unknown {
+  if (!projectId) return result;
+  const matches = (value: unknown): boolean => {
+    if (!value || typeof value !== "object" || !("projectId" in value)) return false;
+    return (value as { projectId?: unknown }).projectId === projectId;
+  };
+  if (Array.isArray(result)) return result.filter(matches);
+  if (result && typeof result === "object" && "data" in result && Array.isArray((result as { data?: unknown }).data)) {
+    return { ...result, data: (result as { data: unknown[] }).data.filter(matches) };
+  }
+  return result;
+}
+
 server.registerTool("get_organization_status", {
   description: "Read the authenticated organization status and active projects.",
   inputSchema: tenantInput,
@@ -45,7 +63,7 @@ server.registerTool("get_project_roadmap", {
 }, async (input) => {
   const organizationIdValue = organizationId(input);
   // Projects are returned with their milestones by the collection endpoint.
-  const result = await api.get("/api/v1/projects");
+  const result = restrictToProject(await api.get("/api/v1/projects"), input.projectId);
   logger.info({ tool: "get_project_roadmap", organizationId: organizationIdValue, projectId: input.projectId }, "MCP tool call");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
@@ -65,7 +83,7 @@ server.registerTool("list_documents", {
   inputSchema: projectFilterInput,
 }, async (input) => {
   const organizationIdValue = organizationId(input);
-  const result = await api.get("/api/v1/documents", { projectId: input.projectId });
+  const result = restrictToProject(await api.get("/api/v1/documents", { projectId: input.projectId }), input.projectId);
   logger.info({ tool: "list_documents", organizationId: organizationIdValue }, "MCP tool call");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
@@ -157,7 +175,7 @@ server.registerTool("list_deliverables", {
   inputSchema: projectFilterInput,
 }, async (input) => {
   const organizationIdValue = organizationId(input);
-  const result = await api.get("/api/v1/deliverables", { projectId: input.projectId });
+  const result = restrictToProject(await api.get("/api/v1/deliverables", { projectId: input.projectId }), input.projectId);
   logger.info({ tool: "list_deliverables", organizationId: organizationIdValue }, "MCP tool call");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
@@ -167,7 +185,7 @@ server.registerTool("list_tickets", {
   inputSchema: projectFilterInput,
 }, async (input) => {
   const organizationIdValue = organizationId(input);
-  const result = await api.get("/api/v1/tickets", { projectId: input.projectId });
+  const result = restrictToProject(await api.get("/api/v1/tickets", { projectId: input.projectId }), input.projectId);
   logger.info({ tool: "list_tickets", organizationId: organizationIdValue }, "MCP tool call");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
@@ -187,7 +205,7 @@ server.registerTool("list_monitors", {
   inputSchema: projectFilterInput,
 }, async (input) => {
   const organizationIdValue = organizationId(input);
-  const result = await api.get("/api/v1/monitors", { projectId: input.projectId });
+  const result = restrictToProject(await api.get("/api/v1/monitors", { projectId: input.projectId }), input.projectId);
   logger.info({ tool: "list_monitors", organizationId: organizationIdValue }, "MCP tool call");
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
