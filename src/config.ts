@@ -5,9 +5,9 @@ import { z } from "zod";
 // the client makes the first-run experience zero-configuration for developers.
 // Environment variables remain available for private stages or overrides.
 export const DEFAULT_MCP_CONFIG = {
-  ANDIORA_API_URL: "https://bij7hee319.execute-api.us-east-1.amazonaws.com",
-  MCP_OIDC_ISSUER: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_DKWWHu3BQ",
-  MCP_OIDC_CLIENT_ID: "272c692n3c4ep6g92ale2lreri",
+  ANDIORA_API_URL: "https://api.andioratech.com",
+  MCP_OIDC_ISSUER: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_nwraMiBGb",
+  MCP_OIDC_CLIENT_ID: "4o0eg826db7ghk7503mbbrrsi1",
   MCP_OIDC_SCOPES: "openid email profile",
   MCP_OIDC_CALLBACK_PORT: 4318,
 } as const;
