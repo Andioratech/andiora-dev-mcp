@@ -1,12 +1,22 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { randomUUID } from "node:crypto";
+import { decodeJwt } from "jose";
 import pino from "pino";
 import { z } from "zod";
 import { AndioraApiClient } from "./api-client.js";
 import { loadConfig } from "./config.js";
+import { loginWithCognito } from "./oauth.js";
 
-const config = loadConfig();
+const initialConfig = loadConfig();
+const accessToken = initialConfig.ANDIORA_ACCESS_TOKEN ?? (
+  initialConfig.MCP_OIDC_ISSUER && initialConfig.MCP_OIDC_CLIENT_ID
+    ? await loginWithCognito(initialConfig)
+    : (() => { throw new Error("ANDIORA_ACCESS_TOKEN is empty; configure MCP_OIDC_ISSUER and MCP_OIDC_CLIENT_ID for browser login"); })()
+);
+const tokenClaims = decodeJwt(accessToken) as { tenant_id?: unknown };
+const derivedOrganizationId = initialConfig.ANDIORA_ORGANIZATION_ID ?? (typeof tokenClaims.tenant_id === "string" ? tokenClaims.tenant_id : undefined);
+const config = { ...initialConfig, ANDIORA_ACCESS_TOKEN: accessToken, ANDIORA_ORGANIZATION_ID: derivedOrganizationId };
 const logger = pino({ level: config.LOG_LEVEL, redact: ["*.token", "*.authorization", "*.cookie", "*.secret"] });
 const api = new AndioraApiClient(config);
 const server = new McpServer({ name: "andiora-dev-mcp", version: "0.1.0" });

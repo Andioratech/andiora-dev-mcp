@@ -1,8 +1,8 @@
-import type { Config } from "./config.js";
+import type { AuthenticatedConfig } from "./config.js";
 
 export class AndioraApiClient {
   private readonly requestTimes: number[] = [];
-  constructor(private readonly config: Config) {}
+  constructor(private readonly config: AuthenticatedConfig) {}
 
   private enforceRateLimit(): void {
     const now = Date.now();
