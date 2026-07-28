@@ -10,9 +10,7 @@ import { loginWithCognito } from "./oauth.js";
 
 const initialConfig = loadConfig();
 const accessToken = initialConfig.ANDIORA_ACCESS_TOKEN ?? (
-  initialConfig.MCP_OIDC_ISSUER && initialConfig.MCP_OIDC_CLIENT_ID
-    ? await loginWithCognito(initialConfig)
-    : (() => { throw new Error("ANDIORA_ACCESS_TOKEN is empty; configure MCP_OIDC_ISSUER and MCP_OIDC_CLIENT_ID for browser login"); })()
+  await loginWithCognito(initialConfig)
 );
 const tokenClaims = decodeJwt(accessToken) as { tenant_id?: unknown };
 const derivedOrganizationId = initialConfig.ANDIORA_ORGANIZATION_ID ?? (typeof tokenClaims.tenant_id === "string" ? tokenClaims.tenant_id : undefined);

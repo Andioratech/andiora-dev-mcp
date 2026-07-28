@@ -23,23 +23,22 @@ The MCP server will provide a governed interface for developer assistants to rea
 
 ```bash
 npm install
-cp .env.example .env
-# Set ANDIORA_ACCESS_TOKEN in .env using a short-lived developer token.
 npm run build
-npm run dev
+npm start
 ```
 
-If `ANDIORA_ACCESS_TOKEN` is empty, the MCP starts a loopback OAuth callback on
-`127.0.0.1:4318`, opens the Cognito managed login in the browser, validates the
-Authorization Code + PKCE response, and exchanges the Cognito identity for a
-short-lived Andiora access token. The token is kept in memory only. Configure
-the MCP-only Cognito issuer and public client in `.env`:
+No `.env` file is required for the standard Andiora dev environment. On the
+first run, the MCP starts a loopback OAuth callback on `127.0.0.1:4318`, opens
+the Cognito managed login in the browser, validates the Authorization Code +
+PKCE response, and exchanges the Cognito identity for a short-lived Andiora
+access token. The token is kept in memory only. `.env` is reserved for private
+stages or advanced overrides.
 
 ```dotenv
+# Optional private-stage overrides only:
+ANDIORA_API_URL=https://your-api.example.com
 MCP_OIDC_ISSUER=https://cognito-idp.us-east-1.amazonaws.com/<pool-id>
 MCP_OIDC_CLIENT_ID=<public-client-id>
-MCP_OIDC_SCOPES=openid email profile
-MCP_OIDC_CALLBACK_PORT=4318
 ```
 
 The first runtime phase intentionally exposes only read tools over `stdio`. It uses the existing Andiora REST API, applies a configured tenant boundary, validates inputs, redacts sensitive logs, and sends idempotency support for future write tools.
@@ -61,12 +60,7 @@ For Cursor, Claude Desktop, or another stdio-capable client, configure the compi
   "mcpServers": {
     "andiora-dev": {
       "command": "node",
-      "args": ["/absolute/path/to/andiora-dev-mcp/dist/index.js"],
-      "env": {
-        "ANDIORA_API_URL": "https://bij7hee319.execute-api.us-east-1.amazonaws.com",
-        "ANDIORA_ACCESS_TOKEN": "${ANDIORA_ACCESS_TOKEN}",
-        "ANDIORA_ORGANIZATION_ID": "${ANDIORA_ORGANIZATION_ID}"
-      }
+      "args": ["/absolute/path/to/andiora-dev-mcp/dist/index.js"]
     }
   }
 }

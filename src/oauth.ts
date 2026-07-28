@@ -49,7 +49,6 @@ function callbackHtml(success: boolean, message: string): string {
  * The access token is held only in memory and is never written to disk.
  */
 export async function loginWithCognito(config: Config): Promise<string> {
-  if (!config.MCP_OIDC_ISSUER || !config.MCP_OIDC_CLIENT_ID) throw new Error("MCP Cognito OIDC configuration is incomplete");
   const issuer = config.MCP_OIDC_ISSUER;
   const clientId = config.MCP_OIDC_CLIENT_ID;
   const metadata = await discover(issuer);

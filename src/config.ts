@@ -1,14 +1,25 @@
 import "dotenv/config";
 import { z } from "zod";
 
+// These values are public OAuth/API identifiers, not secrets. Keeping them in
+// the client makes the first-run experience zero-configuration for developers.
+// Environment variables remain available for private stages or overrides.
+export const DEFAULT_MCP_CONFIG = {
+  ANDIORA_API_URL: "https://bij7hee319.execute-api.us-east-1.amazonaws.com",
+  MCP_OIDC_ISSUER: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_DKWWHu3BQ",
+  MCP_OIDC_CLIENT_ID: "272c692n3c4ep6g92ale2lreri",
+  MCP_OIDC_SCOPES: "openid email profile",
+  MCP_OIDC_CALLBACK_PORT: 4318,
+} as const;
+
 const schema = z.object({
-  ANDIORA_API_URL: z.string().url().transform((value) => value.replace(/\/$/, "")),
+  ANDIORA_API_URL: z.preprocess((value) => value === "" ? undefined : value, z.string().url().default(DEFAULT_MCP_CONFIG.ANDIORA_API_URL)).transform((value) => value.replace(/\/$/, "")),
   ANDIORA_ACCESS_TOKEN: z.preprocess((value) => value === "" ? undefined : value, z.string().min(20).optional()),
   ANDIORA_ORGANIZATION_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
-  MCP_OIDC_ISSUER: z.preprocess((value) => value === "" ? undefined : value, z.string().url().transform((value) => value.replace(/\/$/, "")).optional()),
-  MCP_OIDC_CLIENT_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).optional()),
-  MCP_OIDC_SCOPES: z.string().default("openid email profile"),
-  MCP_OIDC_CALLBACK_PORT: z.coerce.number().int().min(1024).max(65535).default(4318),
+  MCP_OIDC_ISSUER: z.preprocess((value) => value === "" ? undefined : value, z.string().url().transform((value) => value.replace(/\/$/, "")).default(DEFAULT_MCP_CONFIG.MCP_OIDC_ISSUER)),
+  MCP_OIDC_CLIENT_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).default(DEFAULT_MCP_CONFIG.MCP_OIDC_CLIENT_ID)),
+  MCP_OIDC_SCOPES: z.preprocess((value) => value === "" ? undefined : value, z.string().default(DEFAULT_MCP_CONFIG.MCP_OIDC_SCOPES)),
+  MCP_OIDC_CALLBACK_PORT: z.preprocess((value) => value === "" ? undefined : value, z.coerce.number().int().min(1024).max(65535).default(DEFAULT_MCP_CONFIG.MCP_OIDC_CALLBACK_PORT)),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
 
