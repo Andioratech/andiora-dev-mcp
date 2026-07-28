@@ -1,0 +1,23 @@
+{
+  "name": "@andiora/dev-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Governed MCP server for Andiora developer workflows.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "jose": "^6.2.4",
+    "pino": "^10.3.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3"
+  }
+}

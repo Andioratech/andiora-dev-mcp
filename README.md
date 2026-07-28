@@ -19,4 +19,36 @@ The MCP server will provide a governed interface for developer assistants to rea
 
 ## Repository status
 
-This repository currently contains the initial MCP architecture and integration specification. Runtime implementation will be added in a subsequent, separately reviewed change.
+## Local development
+
+```bash
+npm install
+cp .env.example .env
+# Set ANDIORA_ACCESS_TOKEN in .env using a short-lived developer token.
+npm run build
+npm run dev
+```
+
+The first runtime phase intentionally exposes only read tools over `stdio`. It uses the existing Andiora REST API, applies a configured tenant boundary, validates inputs, redacts sensitive logs, and sends idempotency support for future write tools.
+
+## Client configuration
+
+For Cursor, Claude Desktop, or another stdio-capable client, configure the compiled entry point:
+
+```json
+{
+  "mcpServers": {
+    "andiora-dev": {
+      "command": "node",
+      "args": ["/absolute/path/to/andiora-dev-mcp/dist/index.js"],
+      "env": {
+        "ANDIORA_API_URL": "https://bij7hee319.execute-api.us-east-1.amazonaws.com",
+        "ANDIORA_ACCESS_TOKEN": "${ANDIORA_ACCESS_TOKEN}",
+        "ANDIORA_ORGANIZATION_ID": "${ANDIORA_ORGANIZATION_ID}"
+      }
+    }
+  }
+}
+```
+
+Remote Streamable HTTP, OAuth/OIDC, write tools, approval workflows, and AWS deployment remain deliberately gated for a separate security-reviewed phase. No AWS resources are created by this repository yet.
