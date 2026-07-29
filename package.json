@@ -6,6 +6,7 @@
   "description": "Governed MCP server for Andiora developer workflows.",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/http.ts",
     "start:http": "node dist/http.js",

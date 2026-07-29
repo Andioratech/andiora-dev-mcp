@@ -1,0 +1,42 @@
+name: MCP CI
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm audit --audit-level=high
+      - name: HTTP gateway smoke check
+        run: |
+          MCP_HTTP_PORT=4020 node dist/http.js > /tmp/andiora-mcp-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent http://127.0.0.1:4020/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/andiora-mcp-http.log
+          exit 1
