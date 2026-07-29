@@ -76,6 +76,29 @@ server.registerTool("list_projects", {
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
 
+server.registerTool("list_engineering_resources", {
+  description: "List Andiora-approved engineering tools, dependencies, skills and context packs visible for a project scope.",
+  inputSchema: { ...projectFilterInput },
+}, async (input) => {
+  const organizationIdValue = organizationId(input);
+  const result = await api.get("/api/v1/engineering/catalog", {
+    organizationId: organizationIdValue,
+    projectId: input.projectId,
+  });
+  logger.info({ tool: "list_engineering_resources", organizationId: organizationIdValue, projectId: input.projectId }, "MCP tool call");
+  return { content: [{ type: "text", text: JSON.stringify(result) }] };
+});
+
+server.registerTool("get_project_engineering_context", {
+  description: "Resolve the approved engineering context assigned to a tenant-scoped project.",
+  inputSchema: { organizationId: z.string().min(1).optional(), projectId: z.string().min(1) },
+}, async (input) => {
+  const organizationIdValue = organizationId(input);
+  const result = await api.get(`/api/v1/engineering/context/${encodeURIComponent(input.projectId)}`, { organizationId: organizationIdValue });
+  logger.info({ tool: "get_project_engineering_context", organizationId: organizationIdValue, projectId: input.projectId }, "MCP tool call");
+  return { content: [{ type: "text", text: JSON.stringify(result) }] };
+});
+
 server.registerTool("list_documents", {
   description: "List tenant-scoped documents without returning file contents or secrets.",
   inputSchema: projectFilterInput,
