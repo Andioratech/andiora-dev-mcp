@@ -66,7 +66,32 @@ For Cursor, Claude Desktop, or another stdio-capable client, configure the compi
 }
 ```
 
-The MCP OAuth flow is intentionally local `stdio` plus a loopback callback. It
-does not expose an HTTP MCP server or persist tokens. Cognito provisioning and
+The developer OAuth flow remains local `stdio` plus a loopback callback and
+does not persist tokens. Cognito provisioning and
 the password-migration trigger are defined in the Andiora platform repository;
 see its `docs/MCP_COGNITO_AUTH.md`.
+
+## Internal HTTPS gateway
+
+The AI agent does not connect to a developer's local `stdio` process. Run the
+separate Streamable HTTP gateway inside a private network boundary:
+
+```bash
+npm run build
+npm run start:http
+# health check only
+curl http://127.0.0.1:4020/health
+```
+
+The `/mcp` endpoint requires a Cognito ID token. The gateway exchanges that
+identity through `/api/v1/auth/mcp/exchange`, keeps the resulting short-lived
+Andiora API token in memory, and creates a read-only MCP session bound to the
+user and organization returned by Andiora. It does not trust an organization
+header supplied by the caller.
+
+The HTTP transport intentionally registers only read tools, uses stateful MCP
+sessions with expiry, enforces request/body limits, and never exposes the
+developer write tools. Deploy it behind an internal load balancer or private
+service discovery; do not make `/mcp` a public browser endpoint. The AI agent
+should use the internal URL as `MCP_GATEWAY_URL` and forward the authenticated
+Cognito identity token.

@@ -1,20 +1,18 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { decodeJwt } from "jose";
 import pino from "pino";
 import { z } from "zod";
 import { AndioraApiClient } from "./api-client.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, type AuthenticatedConfig } from "./config.js";
 import { loginWithCognito } from "./oauth.js";
 
-const initialConfig = loadConfig();
-const accessToken = initialConfig.ANDIORA_ACCESS_TOKEN ?? (
-  await loginWithCognito(initialConfig)
-);
-const tokenClaims = decodeJwt(accessToken) as { tenant_id?: unknown };
-const derivedOrganizationId = initialConfig.ANDIORA_ORGANIZATION_ID ?? (typeof tokenClaims.tenant_id === "string" ? tokenClaims.tenant_id : undefined);
-const config = { ...initialConfig, ANDIORA_ACCESS_TOKEN: accessToken, ANDIORA_ORGANIZATION_ID: derivedOrganizationId };
+export type McpServerOptions = { readOnly?: boolean };
+
+export function createMcpServer(config: AuthenticatedConfig, options: McpServerOptions = {}): McpServer {
+const readOnly = options.readOnly ?? false;
 const logger = pino({ level: config.LOG_LEVEL, redact: ["*.token", "*.authorization", "*.cookie", "*.secret"] });
 const api = new AndioraApiClient(config);
 const server = new McpServer({ name: "andiora-dev-mcp", version: "0.1.0" });
@@ -88,6 +86,7 @@ server.registerTool("list_documents", {
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
 
+if (!readOnly) {
 server.registerTool("create_markdown_document", {
   description: "Create and upload a tenant-scoped Markdown document as a DRAFT for human review.",
   inputSchema: {
@@ -169,6 +168,7 @@ async function transitionDocument(documentId: string, status: "REVIEW" | "APPROV
 server.registerTool("submit_document_for_review", { description: "Move a Markdown document from DRAFT to REVIEW.", inputSchema: { documentId: z.string().min(1) } }, async ({ documentId }) => ({ content: [{ type: "text", text: JSON.stringify((await transitionDocument(documentId, "REVIEW")).data) }] }));
 server.registerTool("approve_document", { description: "Approve a document currently in REVIEW.", inputSchema: { documentId: z.string().min(1) } }, async ({ documentId }) => ({ content: [{ type: "text", text: JSON.stringify((await transitionDocument(documentId, "APPROVED")).data) }] }));
 server.registerTool("publish_document", { description: "Publish an approved document. Requires explicit human invocation.", inputSchema: { documentId: z.string().min(1) } }, async ({ documentId }) => ({ content: [{ type: "text", text: JSON.stringify((await transitionDocument(documentId, "PUBLISHED")).data) }] }));
+}
 
 server.registerTool("list_deliverables", {
   description: "List tenant-scoped project deliverables and their approval status.",
@@ -230,4 +230,16 @@ server.registerTool("get_health_diagnostics", {
   return { content: [{ type: "text", text: JSON.stringify(result) }] };
 });
 
-await server.connect(new StdioServerTransport());
+return server;
+}
+
+const isMainModule = process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url;
+if (isMainModule) {
+  const initialConfig = loadConfig();
+  const accessToken = initialConfig.ANDIORA_ACCESS_TOKEN ?? await loginWithCognito(initialConfig);
+  const tokenClaims = decodeJwt(accessToken) as { tenant_id?: unknown };
+  const derivedOrganizationId = initialConfig.ANDIORA_ORGANIZATION_ID ?? (typeof tokenClaims.tenant_id === "string" ? tokenClaims.tenant_id : undefined);
+  const config: AuthenticatedConfig = { ...initialConfig, ANDIORA_ACCESS_TOKEN: accessToken, ANDIORA_ORGANIZATION_ID: derivedOrganizationId };
+  const server = createMcpServer(config);
+  await server.connect(new StdioServerTransport());
+}

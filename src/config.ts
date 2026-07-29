@@ -10,6 +10,9 @@ export const DEFAULT_MCP_CONFIG = {
   MCP_OIDC_CLIENT_ID: "4o0eg826db7ghk7503mbbrrsi1",
   MCP_OIDC_SCOPES: "openid email profile",
   MCP_OIDC_CALLBACK_PORT: 4318,
+  MCP_HTTP_HOST: "127.0.0.1",
+  MCP_HTTP_PORT: 4020,
+  MCP_HTTP_PATH: "/mcp",
 } as const;
 
 const schema = z.object({
@@ -20,6 +23,9 @@ const schema = z.object({
   MCP_OIDC_CLIENT_ID: z.preprocess((value) => value === "" ? undefined : value, z.string().min(1).default(DEFAULT_MCP_CONFIG.MCP_OIDC_CLIENT_ID)),
   MCP_OIDC_SCOPES: z.preprocess((value) => value === "" ? undefined : value, z.string().default(DEFAULT_MCP_CONFIG.MCP_OIDC_SCOPES)),
   MCP_OIDC_CALLBACK_PORT: z.preprocess((value) => value === "" ? undefined : value, z.coerce.number().int().min(1024).max(65535).default(DEFAULT_MCP_CONFIG.MCP_OIDC_CALLBACK_PORT)),
+  MCP_HTTP_HOST: z.string().min(1).default(DEFAULT_MCP_CONFIG.MCP_HTTP_HOST),
+  MCP_HTTP_PORT: z.coerce.number().int().min(1024).max(65535).default(DEFAULT_MCP_CONFIG.MCP_HTTP_PORT),
+  MCP_HTTP_PATH: z.string().regex(/^\/[a-zA-Z0-9/_-]*$/).default(DEFAULT_MCP_CONFIG.MCP_HTTP_PATH),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
 
