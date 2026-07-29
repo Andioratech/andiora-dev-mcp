@@ -66,6 +66,10 @@ export async function loginWithCognito(config: Config): Promise<string> {
   authorizationUrl.searchParams.set("code_challenge", challenge);
   authorizationUrl.searchParams.set("code_challenge_method", "S256");
 
+  // Keep the browser flow convenient while always providing a copy/paste
+  // fallback for terminals where xdg-open is unavailable.
+  process.stderr.write(`\nAndiora MCP authentication required.\nOpen this URL in your browser:\n${authorizationUrl.toString()}\n\n`);
+
   const server = createServer();
   const result = await new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => {
