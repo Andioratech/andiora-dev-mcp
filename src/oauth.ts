@@ -41,7 +41,7 @@ function openBrowser(url: string): void {
 
 function callbackHtml(success: boolean, message: string): string {
   const escaped = message.replace(/[&<>"']/g, (value) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[value] ?? value);
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Andiora MCP</title></head><body style="font-family:system-ui;max-width:38rem;margin:4rem auto;padding:1rem"><h1>${success ? "Andiora MCP conectado" : "No se pudo autenticar"}</h1><p>${escaped}</p><p>Ya puedes cerrar esta ventana.</p></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Andiora MCP</title></head><body style="font-family:system-ui;max-width:38rem;margin:4rem auto;padding:1rem"><h1>${success ? "Andiora MCP connected" : "Authentication failed"}</h1><p>${escaped}</p><p>You can close this window.</p></body></html>`;
 }
 
 /**
@@ -86,7 +86,7 @@ export async function loginWithCognito(config: Config): Promise<string> {
         }
         const returnedState = requestUrl.searchParams.get("state") ?? "";
         if (!secureEquals(returnedState, state)) {
-          response.writeHead(400, { "Content-Type": "text/html; charset=utf-8" }).end(callbackHtml(false, "La validación de seguridad expiró o no coincide."));
+          response.writeHead(400, { "Content-Type": "text/html; charset=utf-8" }).end(callbackHtml(false, "The security validation expired or did not match."));
           clearTimeout(timeout);
           server.close();
           reject(new Error("MCP OAuth state validation failed"));
@@ -94,7 +94,7 @@ export async function loginWithCognito(config: Config): Promise<string> {
         }
         const error = requestUrl.searchParams.get("error");
         if (error) {
-          response.writeHead(400, { "Content-Type": "text/html; charset=utf-8" }).end(callbackHtml(false, "El proveedor de identidad rechazó el inicio de sesión."));
+          response.writeHead(400, { "Content-Type": "text/html; charset=utf-8" }).end(callbackHtml(false, "The identity provider rejected the sign-in."));
           clearTimeout(timeout);
           server.close();
           reject(new Error(`Cognito OAuth authorization failed: ${error}`));
@@ -133,12 +133,12 @@ export async function loginWithCognito(config: Config): Promise<string> {
           throw new Error(exchangePayload.error || "Andiora MCP identity exchange failed");
         }
 
-        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(callbackHtml(true, "La identidad fue verificada por Andiora."));
+        response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(callbackHtml(true, "Your identity was verified by Andiora."));
         clearTimeout(timeout);
         server.close();
         resolve(exchangePayload.accessToken);
       } catch (error) {
-        response.writeHead(500, { "Content-Type": "text/html; charset=utf-8" }).end(callbackHtml(false, "La autenticación no pudo completarse."));
+        response.writeHead(500, { "Content-Type": "text/html; charset=utf-8" }).end(callbackHtml(false, "Authentication could not be completed."));
         clearTimeout(timeout);
         server.close();
         reject(error instanceof Error ? error : new Error("MCP OAuth authentication failed"));
